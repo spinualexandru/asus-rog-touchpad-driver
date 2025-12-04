@@ -32,4 +32,3 @@ target
 # Arch Linux packaging
 *.pkg.tar.zst
 *.tar.gz
-.SRCINFO

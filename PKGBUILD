@@ -1,4 +1,4 @@
-# Maintainer: Your Name <your.email@example.com>
+# Maintainer: Spinu Alexandru <spinualexandru@outlook.com>
 pkgname=asus-rog-touchpad-numpad
 pkgver=0.1.0
 pkgrel=1
