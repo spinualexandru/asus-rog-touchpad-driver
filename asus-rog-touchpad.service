@@ -1,0 +1,16 @@
+[Unit]
+Description=ASUS ROG Touchpad Numpad Driver
+Documentation=https://github.com/spinualexandru/asus-rog-touchpad-driver
+After=systemd-udevd.service
+Wants=systemd-udevd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/asus-rog-touchpad-numpad
+Restart=on-failure
+RestartSec=5
+# Uncomment for debug logging:
+# Environment=RUST_LOG=debug
+
+[Install]
+WantedBy=multi-user.target

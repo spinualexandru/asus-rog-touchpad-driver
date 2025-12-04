@@ -1,0 +1,30 @@
+[package]
+name = "asus-rog-touchpad-driver"
+version = "0.1.0"
+edition = "2021"
+authors = ["Spinu Alexandru"]
+documentation = "https://github.com/spinualexandru/asus-rog-touchpad-driver"
+repository = "https://github.com/spinualexandru/asus-rog-touchpad-driver"
+license = "GPL-2"
+
+[[bin]]
+name = "asus-rog-touchpad-numpad"
+path = "src/main.rs"
+
+[dependencies]
+# Input device handling
+evdev = "0.13"
+
+# I2C communication for LED control
+i2c-linux = { version = "0.1", features = ["i2c"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Regex for device parsing
+regex = "1.10"
