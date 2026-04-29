@@ -27,7 +27,7 @@ pub struct DetectedDevices {
 pub fn detect_devices(try_times: u32, try_sleep: Duration) -> Result<DetectedDevices> {
     let touchpad_name_re = Regex::new(r#"Name="(ASUE|ASUF|ELAN).*Touchpad"#).unwrap();
     let keyboard_name_re =
-        Regex::new(r#"Name="(AT Translated Set 2 keyboard|Asus Keyboard)"#).unwrap();
+        Regex::new(r#"Name="(AT Translated Set 2 keyboard|AT Raw Set 2 keyboard|Asus Keyboard)"#).unwrap();
     let i2c_bus_re = Regex::new(r"i2c-(\d+)/").unwrap();
     let event_re = Regex::new(r"event(\d+)").unwrap();
 
