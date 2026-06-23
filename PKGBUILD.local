@@ -2,7 +2,7 @@
 # Usage: makepkg -p PKGBUILD.local -si
 
 pkgname=asus-rog-touchpad-numpad
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Linux driver for ASUS ROG laptop touchpad numpad overlay with LED backlight control"
 arch=('x86_64')
@@ -14,6 +14,11 @@ install=$pkgname.install
 backup=('etc/modules-load.d/i2c-dev.conf')
 source=()
 sha256sums=()
+
+pkgver() {
+    cd "${startdir:-$PWD}"
+    sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1
+}
 
 prepare() {
     cd "$startdir"
