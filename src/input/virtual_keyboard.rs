@@ -35,7 +35,11 @@ impl VirtualKeyboard {
     pub fn press_key(&mut self, key: KeyCode) -> io::Result<()> {
         let events = [
             InputEvent::new_now(evdev::EventType::KEY.0, key.0, 1),
-            InputEvent::new_now(evdev::EventType::SYNCHRONIZATION.0, SynchronizationCode::SYN_REPORT.0, 0),
+            InputEvent::new_now(
+                evdev::EventType::SYNCHRONIZATION.0,
+                SynchronizationCode::SYN_REPORT.0,
+                0,
+            ),
         ];
         self.device.emit(&events)
     }
@@ -44,7 +48,11 @@ impl VirtualKeyboard {
     pub fn release_key(&mut self, key: KeyCode) -> io::Result<()> {
         let events = [
             InputEvent::new_now(evdev::EventType::KEY.0, key.0, 0),
-            InputEvent::new_now(evdev::EventType::SYNCHRONIZATION.0, SynchronizationCode::SYN_REPORT.0, 0),
+            InputEvent::new_now(
+                evdev::EventType::SYNCHRONIZATION.0,
+                SynchronizationCode::SYN_REPORT.0,
+                0,
+            ),
         ];
         self.device.emit(&events)
     }
@@ -54,7 +62,11 @@ impl VirtualKeyboard {
         let events = [
             InputEvent::new_now(evdev::EventType::KEY.0, KeyCode::KEY_LEFTSHIFT.0, 1),
             InputEvent::new_now(evdev::EventType::KEY.0, key.0, 1),
-            InputEvent::new_now(evdev::EventType::SYNCHRONIZATION.0, SynchronizationCode::SYN_REPORT.0, 0),
+            InputEvent::new_now(
+                evdev::EventType::SYNCHRONIZATION.0,
+                SynchronizationCode::SYN_REPORT.0,
+                0,
+            ),
         ];
         self.device.emit(&events)
     }
@@ -62,20 +74,54 @@ impl VirtualKeyboard {
     /// Release key with shift modifier
     pub fn release_key_with_shift(&mut self, key: KeyCode) -> io::Result<()> {
         let events = [
-            InputEvent::new_now(evdev::EventType::KEY.0, KeyCode::KEY_LEFTSHIFT.0, 0),
             InputEvent::new_now(evdev::EventType::KEY.0, key.0, 0),
-            InputEvent::new_now(evdev::EventType::SYNCHRONIZATION.0, SynchronizationCode::SYN_REPORT.0, 0),
+            InputEvent::new_now(evdev::EventType::KEY.0, KeyCode::KEY_LEFTSHIFT.0, 0),
+            InputEvent::new_now(
+                evdev::EventType::SYNCHRONIZATION.0,
+                SynchronizationCode::SYN_REPORT.0,
+                0,
+            ),
         ];
         self.device.emit(&events)
     }
 
-    /// Send numlock toggle event
-    pub fn toggle_numlock(&mut self, enabled: bool) -> io::Result<()> {
-        let value = if enabled { 1 } else { 0 };
+    /// Send a full key click event
+    pub fn click_key(&mut self, key: KeyCode) -> io::Result<()> {
         let events = [
-            InputEvent::new_now(evdev::EventType::KEY.0, KeyCode::KEY_NUMLOCK.0, value),
-            InputEvent::new_now(evdev::EventType::SYNCHRONIZATION.0, SynchronizationCode::SYN_REPORT.0, 0),
+            InputEvent::new_now(evdev::EventType::KEY.0, key.0, 1),
+            InputEvent::new_now(evdev::EventType::KEY.0, key.0, 0),
+            InputEvent::new_now(
+                evdev::EventType::SYNCHRONIZATION.0,
+                SynchronizationCode::SYN_REPORT.0,
+                0,
+            ),
         ];
         self.device.emit(&events)
+    }
+
+    /// Send a full NumLock key click
+    pub fn click_numlock(&mut self) -> io::Result<()> {
+        self.click_key(KeyCode::KEY_NUMLOCK)
+    }
+}
+
+pub fn keys_with_extra(mut keys: Vec<KeyCode>, extra: KeyCode) -> Vec<KeyCode> {
+    if !keys.contains(&extra) {
+        keys.push(extra);
+    }
+    keys
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adds_extra_key_once() {
+        let keys = keys_with_extra(vec![KeyCode::KEY_KP1], KeyCode::KEY_6);
+        assert_eq!(keys, vec![KeyCode::KEY_KP1, KeyCode::KEY_6]);
+
+        let keys = keys_with_extra(keys, KeyCode::KEY_6);
+        assert_eq!(keys, vec![KeyCode::KEY_KP1, KeyCode::KEY_6]);
     }
 }

@@ -43,17 +43,15 @@ deps:
     #!/usr/bin/bash
     echo -e "{{green}}[INFO]{{nc}} Required dependencies:"
     if command -v pacman &> /dev/null; then
-        echo "  pacman -S --needed rust libevdev"
+        echo "  pacman -S --needed rust"
     elif command -v apt &> /dev/null; then
-        echo "  apt install cargo libevdev-dev pkg-config"
+        echo "  apt install cargo"
     elif command -v dnf &> /dev/null; then
-        echo "  dnf install rust cargo libevdev-devel pkg-config"
+        echo "  dnf install rust cargo"
     elif command -v zypper &> /dev/null; then
-        echo "  zypper install rust cargo libevdev-devel pkg-config"
+        echo "  zypper install rust cargo"
     else
         echo "  - Rust/Cargo (https://rustup.rs)"
-        echo "  - libevdev development files"
-        echo "  - pkg-config"
     fi
 
 # Check cargo is properly configured
