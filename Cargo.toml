@@ -1,6 +1,6 @@
 [package]
 name = "asus-rog-touchpad-driver"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Spinu Alexandru"]
 documentation = "https://github.com/spinualexandru/asus-rog-touchpad-driver"
@@ -28,3 +28,6 @@ env_logger = "0.11"
 
 # Regex for device parsing
 regex = "1.10"
+
+# Signal handling for service shutdown cleanup
+libc = "0.2"

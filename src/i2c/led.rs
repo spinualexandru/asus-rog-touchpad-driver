@@ -58,7 +58,19 @@ impl LedController {
         let brightness_byte = brightness.as_byte();
 
         let command: [u8; 13] = [
-            0x05, 0x00, 0x3d, 0x03, 0x06, 0x00, 0x07, 0x00, 0x0d, 0x14, 0x03, brightness_byte, 0xad,
+            0x05,
+            0x00,
+            0x3d,
+            0x03,
+            0x06,
+            0x00,
+            0x07,
+            0x00,
+            0x0d,
+            0x14,
+            0x03,
+            brightness_byte,
+            0xad,
         ];
 
         debug!(

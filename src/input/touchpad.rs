@@ -26,12 +26,36 @@ impl TouchpadReader {
         // Get absolute axis state array
         let abs_state = device.get_abs_state()?;
 
-        // Index into the array using axis type code
-        let x_idx = AbsoluteAxisCode::ABS_X.0 as usize;
-        let y_idx = AbsoluteAxisCode::ABS_Y.0 as usize;
+        let x_axis = if device
+            .supported_absolute_axes()
+            .is_some_and(|axes| axes.contains(AbsoluteAxisCode::ABS_MT_POSITION_X))
+        {
+            AbsoluteAxisCode::ABS_MT_POSITION_X
+        } else {
+            AbsoluteAxisCode::ABS_X
+        };
+        let y_axis = if device
+            .supported_absolute_axes()
+            .is_some_and(|axes| axes.contains(AbsoluteAxisCode::ABS_MT_POSITION_Y))
+        {
+            AbsoluteAxisCode::ABS_MT_POSITION_Y
+        } else {
+            AbsoluteAxisCode::ABS_Y
+        };
+
+        // Index into the array using the same axis type read by the event loop.
+        let x_idx = x_axis.0 as usize;
+        let y_idx = y_axis.0 as usize;
 
         let x_info = &abs_state[x_idx];
         let y_info = &abs_state[y_idx];
+
+        if x_info.maximum <= x_info.minimum || y_info.maximum <= y_info.minimum {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "touchpad reported invalid absolute axis bounds",
+            ));
+        }
 
         let bounds = TouchpadBounds {
             min_x: x_info.minimum,

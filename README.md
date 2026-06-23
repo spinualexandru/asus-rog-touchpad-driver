@@ -64,17 +64,17 @@ just deps
 
 **Arch Linux:**
 ```bash
-sudo pacman -S just rust libevdev
+sudo pacman -S just rust
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install just cargo libevdev-dev pkg-config
+sudo apt install just cargo
 ```
 
 **Fedora:**
 ```bash
-sudo dnf install just rust cargo libevdev-devel pkg-config
+sudo dnf install just rust cargo
 ```
 
 ### Build
