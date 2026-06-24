@@ -19,8 +19,8 @@ post_install() {
         - Tap top-left corner to open calculator (numpad off)
 
     Commands:
-        systemctl status asus-rog-touchpad   - Check status
-        journalctl -u asus-rog-touchpad -f   - View logs
+        asus-rog-touchpad-numpad status      - Check status
+        asus-rog-touchpad-numpad logs        - View logs
 
 EOF
 }

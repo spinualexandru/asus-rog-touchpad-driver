@@ -36,14 +36,13 @@ This builds and installs a proper Arch package with:
 - Clean uninstall via `pacman -R asus-rog-touchpad-numpad`
 - Service auto-enabled on install
 
-### Using Just (Any Distribution)
-
-Requires [just](https://github.com/casey/just) command runner.
+### Using the Rust CLI (Any Distribution)
 
 ```bash
 git clone https://github.com/spinualexandru/asus-rog-touchpad-driver.git
 cd asus-rog-touchpad-driver
-just install
+cargo build --release
+sudo ./target/release/asus-rog-touchpad-numpad install
 ```
 
 This will:
@@ -55,7 +54,7 @@ This will:
 
 To see required dependencies for your distribution:
 ```bash
-just deps
+cargo run -- deps
 ```
 
 ## Manual Installation
@@ -64,17 +63,17 @@ just deps
 
 **Arch Linux:**
 ```bash
-sudo pacman -S just rust
+sudo pacman -S rust
 ```
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt install just cargo
+sudo apt install cargo
 ```
 
 **Fedora:**
 ```bash
-sudo dnf install just rust cargo
+sudo dnf install rust cargo
 ```
 
 ### Build
@@ -127,11 +126,11 @@ sudo systemctl enable --now asus-rog-touchpad
 ### Service Management
 
 ```bash
-just status   # Check status
-just restart  # Restart service
-just stop     # Stop service
-just logs     # View logs (follow)
-just run      # Run manually with debug logging
+asus-rog-touchpad-numpad status    # Check status
+sudo asus-rog-touchpad-numpad restart  # Restart service
+sudo asus-rog-touchpad-numpad stop     # Stop service
+asus-rog-touchpad-numpad logs      # View logs (follow)
+sudo RUST_LOG=debug asus-rog-touchpad-numpad run  # Run manually with debug logging
 ```
 
 ## Configuration
@@ -140,10 +139,26 @@ just run      # Run manually with debug logging
 
 ```
 asus-rog-touchpad-numpad [MODEL] [PERCENTAGE_KEY]
+asus-rog-touchpad-numpad run [MODEL] [PERCENTAGE_KEY]
 
 Arguments:
   MODEL           Layout model to use (default: g634jy)
   PERCENTAGE_KEY  Key code for % symbol (default: 6 for Qwerty, 40 for Azerty)
+```
+
+### Management Subcommands
+
+```bash
+asus-rog-touchpad-numpad deps
+asus-rog-touchpad-numpad build
+asus-rog-touchpad-numpad build-debug
+sudo asus-rog-touchpad-numpad install
+sudo asus-rog-touchpad-numpad uninstall
+asus-rog-touchpad-numpad status
+asus-rog-touchpad-numpad logs
+sudo asus-rog-touchpad-numpad start
+sudo asus-rog-touchpad-numpad stop
+sudo asus-rog-touchpad-numpad restart
 ```
 
 ### Environment Variables
@@ -216,9 +231,9 @@ ExecStartPre=/bin/sleep 2
 sudo pacman -R asus-rog-touchpad-numpad
 ```
 
-**Other distributions (if installed via just):**
+**Other distributions (if installed via the Rust CLI):**
 ```bash
-just uninstall
+sudo asus-rog-touchpad-numpad uninstall
 ```
 
 ## Development
@@ -265,11 +280,10 @@ impl NumpadLayout for NewModelLayout {
 ### Building for Development
 
 ```bash
-just build        # Release build
-just build-debug  # Debug build
-just run          # Build and run with debug logging
-just run-debug    # Build debug and run with logging
-just clean        # Clean build artifacts
+asus-rog-touchpad-numpad build        # Release build
+asus-rog-touchpad-numpad build-debug  # Debug build
+asus-rog-touchpad-numpad run-debug    # Build debug and run with logging
+asus-rog-touchpad-numpad clean        # Clean build artifacts
 ```
 
 Or with cargo directly:
