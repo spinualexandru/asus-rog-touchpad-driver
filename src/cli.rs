@@ -41,7 +41,7 @@ pub enum CliCommand {
     /// Check that Cargo is available.
     CheckCargo,
 
-    /// Install the release binary to /usr/bin.
+    /// Install the existing release binary to /usr/bin.
     InstallBinary,
 
     /// Load and persist the i2c-dev kernel module.
@@ -65,7 +65,7 @@ pub enum CliCommand {
     /// Follow systemd journal logs for the service.
     Logs,
 
-    /// Build, install, configure, enable, and start the service.
+    /// Install, configure, enable, and start the service.
     Install,
 
     /// Stop/disable/remove the service and installed binary.
@@ -131,10 +131,7 @@ pub fn execute_command(command: CliCommand) -> Result<()> {
             Ok(())
         }
         CliCommand::CheckCargo => check_cargo(),
-        CliCommand::InstallBinary => {
-            build_release()?;
-            install_binary()
-        }
+        CliCommand::InstallBinary => install_binary(),
         CliCommand::SetupI2c => setup_i2c(),
         CliCommand::InstallService => install_service(),
         CliCommand::Start => start_service(),
@@ -237,10 +234,18 @@ fn check_cargo() -> Result<()> {
 
 fn install_binary() -> Result<()> {
     info(format!("Installing binary to {INSTALL_DIR}..."));
+    let binary = release_binary_path();
+    if !binary.is_file() {
+        bail!(
+            "release binary not found at {}; run `cargo build --release` first",
+            binary.display()
+        );
+    }
+
     fs::create_dir_all(INSTALL_DIR).context("failed to create install directory")?;
 
     let destination = Path::new(INSTALL_DIR).join(BINARY_NAME);
-    fs::copy(release_binary_path(), &destination)
+    fs::copy(&binary, &destination)
         .with_context(|| format!("failed to copy binary to {}", destination.display()))?;
     fs::set_permissions(&destination, fs::Permissions::from_mode(0o755))
         .with_context(|| format!("failed to chmod {}", destination.display()))?;
@@ -329,8 +334,6 @@ fn journalctl_logs() -> Result<()> {
 }
 
 fn install_all() -> Result<()> {
-    check_cargo()?;
-    build_release()?;
     install_binary()?;
     setup_i2c()?;
     install_service()?;
