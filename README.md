@@ -23,11 +23,11 @@ More ASUS models with numpad-enabled touchpads can be added by creating new layo
 
 ## Installation
 
-### Arch Linux (PKGBUILD)
+### Arch Linux (AUR)
 
 ```bash
-git clone https://github.com/spinualexandru/asus-rog-touchpad-driver.git
-cd asus-rog-touchpad-driver
+git clone https://aur.archlinux.org/asus-rog-touchpad-numpad.git
+cd asus-rog-touchpad-numpad
 makepkg -si
 ```
 
@@ -46,11 +46,10 @@ sudo ./target/release/asus-rog-touchpad-numpad install
 ```
 
 This will:
-1. Check cargo is configured
-2. Build the release binary
-3. Install the binary to `/usr/bin/`
-4. Configure the i2c-dev kernel module
-5. Install and start the systemd service
+1. Build the release binary as your user
+2. Install the existing binary to `/usr/bin/`
+3. Configure the i2c-dev kernel module
+4. Install and start the systemd service
 
 To see required dependencies for your distribution:
 ```bash
@@ -226,7 +225,7 @@ ExecStartPre=/bin/sleep 2
 
 ## Uninstall
 
-**Arch Linux (if installed via PKGBUILD):**
+**Arch Linux (if installed via AUR):**
 ```bash
 sudo pacman -R asus-rog-touchpad-numpad
 ```
