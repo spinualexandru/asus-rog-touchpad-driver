@@ -1,10 +1,11 @@
 use anyhow::{Context, Result};
+use cli::{parse_cli, CliCommand, RunArgs};
 use evdev::{AbsoluteAxisCode, KeyCode, LedCode, SynchronizationCode};
 use log::{debug, error, info, warn};
-use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+mod cli;
 mod device;
 mod error;
 mod i2c;
@@ -36,18 +37,25 @@ static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
+    let cli = parse_cli();
+    match cli.command.unwrap_or(CliCommand::Run(RunArgs::default())) {
+        CliCommand::Run(args) => run_driver(args),
+        command => cli::execute_command(command),
+    }
+}
+
+fn run_driver(args: RunArgs) -> Result<()> {
     install_signal_handlers();
 
-    // Parse command line arguments
-    let args: Vec<String> = env::args().collect();
-    let model = args.get(1).map(|s| s.as_str()).unwrap_or("g634jy");
-    let percentage_key_code: u16 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(6);
-
     info!("Starting ASUS Touchpad Numpad Driver");
-    info!("Model: {}, Percentage key: {}", model, percentage_key_code);
+    info!(
+        "Model: {}, Percentage key: {}",
+        args.model, args.percentage_key
+    );
 
     // Get layout
-    let layout = get_layout(model).context("Failed to load layout")?;
+    let layout = get_layout(&args.model).context("Failed to load layout")?;
 
     // Detect devices with retries
     let devices = detect_devices(
@@ -78,7 +86,7 @@ fn main() -> Result<()> {
         bounds.min_x, bounds.max_x, bounds.min_y, bounds.max_y
     );
 
-    let percentage_key = KeyCode(percentage_key_code);
+    let percentage_key = KeyCode(args.percentage_key);
     let virtual_keys = keys_with_extra(layout.all_keys(), percentage_key);
 
     // Initialize virtual keyboard
@@ -105,6 +113,7 @@ fn main() -> Result<()> {
     };
 
     info!("Entering main event loop");
+    notify_systemd(&[("READY", "1"), ("STATUS", "Driver running")]);
 
     // Main event loop
     while !SHUTDOWN_REQUESTED.load(Ordering::SeqCst) {
@@ -128,6 +137,7 @@ fn main() -> Result<()> {
     }
 
     info!("Shutdown requested, cleaning up driver state");
+    notify_systemd(&[("STOPPING", "1"), ("STATUS", "Driver stopping")]);
     cleanup(&mut ctx);
     Ok(())
 }
@@ -330,6 +340,14 @@ fn install_signal_handlers() {
             libc::SIGTERM,
             handle_signal as *const () as libc::sighandler_t,
         );
+    }
+}
+
+fn notify_systemd(state: &[(&str, &str)]) {
+    match systemd::daemon::notify(false, state.iter()) {
+        Ok(true) => debug!("Sent systemd status notification"),
+        Ok(false) => debug!("No systemd notification socket available"),
+        Err(e) => warn!("Failed to notify systemd: {}", e),
     }
 }
 

@@ -5,7 +5,8 @@ After=systemd-udevd.service
 Wants=systemd-udevd.service
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 ExecStart=/usr/bin/asus-rog-touchpad-numpad
 Restart=on-failure
 RestartSec=5
