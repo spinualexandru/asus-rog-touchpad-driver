@@ -1,3 +1,3 @@
 mod state;
 
-pub use state::{Corner, NumpadState};
+pub use state::{Corner, NumpadState, TouchPosition};

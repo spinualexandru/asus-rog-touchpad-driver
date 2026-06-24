@@ -17,7 +17,7 @@ use device::detect_devices;
 use i2c::{try_create_led_controller, LedController};
 use input::{keys_with_extra, TouchpadBounds, TouchpadReader, VirtualKeyboard};
 use layouts::{get_layout, NumpadLayout};
-use numpad::{Corner, NumpadState};
+use numpad::{Corner, NumpadState, TouchPosition};
 
 /// Runtime context holding all mutable driver state
 struct DriverContext<'a> {
@@ -196,11 +196,7 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
         );
 
         let position = ctx.state.current_position;
-        let corner = if ctx.layout.is_toggle_position(position.x, position.y) {
-            Corner::TopRight
-        } else {
-            position.corner()
-        };
+        let corner = corner_at_position(ctx.layout, position);
 
         match corner {
             Corner::TopRight => {
@@ -256,6 +252,16 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn corner_at_position(layout: &dyn NumpadLayout, position: TouchPosition) -> Corner {
+    if layout.is_toggle_position(position.x, position.y) {
+        Corner::TopRight
+    } else if position.corner() == Corner::TopLeft {
+        Corner::TopLeft
+    } else {
+        Corner::None
+    }
 }
 
 fn enable_numpad(ctx: &mut DriverContext) -> Result<()> {
@@ -374,6 +380,24 @@ mod tests {
         assert_eq!(
             map_layout_key(KeyCode::KEY_KP4, KeyCode::KEY_6),
             KeyCode::KEY_KP4
+        );
+    }
+
+    #[test]
+    fn g634jy_corner_detection_respects_layout_toggle_dead_zone() {
+        let layout = layouts::G634jyLayout::new();
+
+        assert_eq!(
+            corner_at_position(&layout, TouchPosition { x: 0.82, y: 0.20 }),
+            Corner::None
+        );
+        assert_eq!(
+            corner_at_position(&layout, TouchPosition { x: 0.90, y: 0.20 }),
+            Corner::TopRight
+        );
+        assert_eq!(
+            corner_at_position(&layout, TouchPosition { x: 0.05, y: 0.05 }),
+            Corner::TopLeft
         );
     }
 }
