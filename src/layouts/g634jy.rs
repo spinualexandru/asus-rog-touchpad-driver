@@ -6,7 +6,7 @@ const OPERATOR_COLUMN: (f64, f64) = (0.68, 0.77);
 const RIGHT_COLUMN: (f64, f64) = (0.85, 1.00);
 
 const MAIN_ROWS: [(f64, f64); 4] = [(0.18, 0.33), (0.39, 0.53), (0.60, 0.73), (0.81, 0.94)];
-const RIGHT_ROWS: [(f64, f64); 3] = [(0.00, 0.32), (0.42, 0.58), (0.68, 0.94)];
+const RIGHT_ROWS: [(f64, f64); 3] = [(0.00, 0.32), (0.42, 0.58), (0.60, 0.94)];
 
 /// ROG Strix SCAR 16 G634JY / G634JYR layout
 /// ASUF1416:00 2808:0108
@@ -181,6 +181,7 @@ mod tests {
         assert_eq!(key_at(0.70, 0.86), Some(KeyCode::KEY_KPPLUS));
         assert_eq!(key_at(0.90, 0.20), None);
         assert_eq!(key_at(0.90, 0.50), Some(KeyCode::KEY_BACKSPACE));
+        assert_eq!(key_at(0.90, 0.62), Some(KeyCode::KEY_KPENTER));
         assert_eq!(key_at(0.90, 0.80), Some(KeyCode::KEY_KPENTER));
     }
 
@@ -214,5 +215,6 @@ mod tests {
         assert_eq!(key_at(0.14, 0.36), None);
         assert_eq!(key_at(0.14, 0.57), None);
         assert_eq!(key_at(0.14, 0.76), None);
+        assert_eq!(key_at(0.90, 0.59), None);
     }
 }
