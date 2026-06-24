@@ -195,7 +195,12 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
             ctx.state.current_position.x, ctx.state.current_position.y
         );
 
-        let corner = ctx.state.current_position.corner();
+        let position = ctx.state.current_position;
+        let corner = if ctx.layout.is_toggle_position(position.x, position.y) {
+            Corner::TopRight
+        } else {
+            position.corner()
+        };
 
         match corner {
             Corner::TopRight => {
@@ -228,21 +233,22 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
             }
             Corner::None if ctx.state.enabled => {
                 // Numpad key press
-                if let Some((row, col)) = ctx.state.grid_position(ctx.layout) {
-                    if let Some(key) = ctx
-                        .layout
-                        .key_at(row, col)
-                        .map(|key| map_layout_key(key, ctx.percentage_key))
-                    {
-                        debug!("Key press: {:?} at ({}, {})", key, row, col);
+                if let Some(key) = ctx
+                    .layout
+                    .key_at_position(position.x, position.y)
+                    .map(|key| map_layout_key(key, ctx.percentage_key))
+                {
+                    debug!(
+                        "Key press: {:?} at x={:.2}, y={:.2}",
+                        key, position.x, position.y
+                    );
 
-                        if key == ctx.percentage_key {
-                            ctx.virtual_kb.press_key_with_shift(key)?;
-                        } else {
-                            ctx.virtual_kb.press_key(key)?;
-                        }
-                        ctx.state.pressed_key = Some(key);
+                    if key == ctx.percentage_key {
+                        ctx.virtual_kb.press_key_with_shift(key)?;
+                    } else {
+                        ctx.virtual_kb.press_key(key)?;
                     }
+                    ctx.state.pressed_key = Some(key);
                 }
             }
             _ => {}
