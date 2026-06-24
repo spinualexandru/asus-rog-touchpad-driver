@@ -70,6 +70,14 @@ fn scaled_index(value: f64, count: f64) -> i32 {
     (count * value.clamp(0.0, 1.0)).floor().min(count - 1.0) as i32
 }
 
+/// Get a layout by name
+pub fn get_layout(name: &str) -> Result<Arc<dyn NumpadLayout>> {
+    match name.to_lowercase().as_str() {
+        "g634jy" | "g634jyr" => Ok(Arc::new(G634jyLayout::new())),
+        _ => Err(DriverError::LayoutNotFound(name.to_string())),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,13 +128,5 @@ mod tests {
             layout.key_at_position(1.0, 1.0),
             Some(KeyCode::KEY_BACKSPACE)
         );
-    }
-}
-
-/// Get a layout by name
-pub fn get_layout(name: &str) -> Result<Arc<dyn NumpadLayout>> {
-    match name.to_lowercase().as_str() {
-        "g634jy" | "g634jyr" => Ok(Arc::new(G634jyLayout::new())),
-        _ => Err(DriverError::LayoutNotFound(name.to_string())),
     }
 }

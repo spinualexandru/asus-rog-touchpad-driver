@@ -1,12 +1,12 @@
 use super::NumpadLayout;
 use evdev::KeyCode;
 
-const NUMERIC_COLUMNS: [(f64, f64); 3] = [(0.00, 0.28), (0.28, 0.46), (0.46, 0.65)];
-const OPERATOR_COLUMN: (f64, f64) = (0.65, 0.80);
-const RIGHT_COLUMN: (f64, f64) = (0.80, 1.00);
+const NUMERIC_COLUMNS: [(f64, f64); 3] = [(0.08, 0.25), (0.31, 0.43), (0.50, 0.63)];
+const OPERATOR_COLUMN: (f64, f64) = (0.68, 0.77);
+const RIGHT_COLUMN: (f64, f64) = (0.85, 1.00);
 
-const MAIN_ROWS: [(f64, f64); 4] = [(0.15, 0.36), (0.36, 0.57), (0.57, 0.76), (0.76, 1.00)];
-const RIGHT_ROWS: [(f64, f64); 3] = [(0.00, 0.39), (0.39, 0.64), (0.64, 1.00)];
+const MAIN_ROWS: [(f64, f64); 4] = [(0.18, 0.33), (0.39, 0.53), (0.60, 0.73), (0.81, 0.94)];
+const RIGHT_ROWS: [(f64, f64); 3] = [(0.00, 0.32), (0.42, 0.58), (0.68, 0.94)];
 
 /// ROG Strix SCAR 16 G634JY / G634JYR layout
 /// ASUF1416:00 2808:0108
@@ -197,5 +197,22 @@ mod tests {
     fn keeps_g634jy_photo_boundaries_out_of_uniform_grid_regressions() {
         assert_eq!(key_at(0.62, 0.25), Some(KeyCode::KEY_KP9));
         assert_eq!(key_at(0.70, 0.25), Some(KeyCode::KEY_KPSLASH));
+    }
+
+    #[test]
+    fn leaves_g634jy_unlit_margins_dead() {
+        assert_eq!(key_at(0.02, 0.25), None);
+        assert_eq!(key_at(0.14, 0.98), None);
+    }
+
+    #[test]
+    fn leaves_g634jy_separator_gaps_dead() {
+        assert_eq!(key_at(0.28, 0.25), None);
+        assert_eq!(key_at(0.46, 0.25), None);
+        assert_eq!(key_at(0.65, 0.25), None);
+        assert_eq!(key_at(0.80, 0.25), None);
+        assert_eq!(key_at(0.14, 0.36), None);
+        assert_eq!(key_at(0.14, 0.57), None);
+        assert_eq!(key_at(0.14, 0.76), None);
     }
 }
