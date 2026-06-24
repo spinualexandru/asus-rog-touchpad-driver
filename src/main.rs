@@ -15,7 +15,7 @@ mod numpad;
 
 use device::detect_devices;
 use i2c::{try_create_led_controller, LedController};
-use input::{keys_with_extra, TouchpadBounds, TouchpadReader, VirtualKeyboard};
+use input::{TouchpadBounds, TouchpadReader, VirtualKeyboard};
 use layouts::{get_layout, NumpadLayout};
 use numpad::{Corner, NumpadState, TouchPosition};
 
@@ -27,7 +27,6 @@ struct DriverContext<'a> {
     touchpad: TouchpadReader,
     layout: &'a dyn NumpadLayout,
     bounds: TouchpadBounds,
-    percentage_key: KeyCode,
     pending_finger_event: Option<i32>,
     numlock_was_on: Option<bool>,
     numlock_toggled_by_driver: bool,
@@ -49,10 +48,7 @@ fn run_driver(args: RunArgs) -> Result<()> {
     install_signal_handlers();
 
     info!("Starting ASUS Touchpad Numpad Driver");
-    info!(
-        "Model: {}, Percentage key: {}",
-        args.model, args.percentage_key
-    );
+    info!("Model: {}", args.model);
 
     // Get layout
     let layout = get_layout(&args.model).context("Failed to load layout")?;
@@ -86,8 +82,7 @@ fn run_driver(args: RunArgs) -> Result<()> {
         bounds.min_x, bounds.max_x, bounds.min_y, bounds.max_y
     );
 
-    let percentage_key = KeyCode(args.percentage_key);
-    let virtual_keys = keys_with_extra(layout.all_keys(), percentage_key);
+    let virtual_keys = layout.all_keys();
 
     // Initialize virtual keyboard
     let virtual_kb =
@@ -106,7 +101,6 @@ fn run_driver(args: RunArgs) -> Result<()> {
         touchpad,
         layout: layout.as_ref(),
         bounds,
-        percentage_key,
         pending_finger_event: None,
         numlock_was_on,
         numlock_toggled_by_driver: false,
@@ -180,6 +174,10 @@ fn process_event(event: &evdev::InputEvent, ctx: &mut DriverContext) -> Result<(
 }
 
 fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
+    println!(
+        "X={:.2}, Y={:.2}",
+        ctx.state.current_position.x, ctx.state.current_position.y
+    );
     if value == 0 {
         // Finger up - release any pressed key
         debug!(
@@ -229,21 +227,13 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
             }
             Corner::None if ctx.state.enabled => {
                 // Numpad key press
-                if let Some(key) = ctx
-                    .layout
-                    .key_at_position(position.x, position.y)
-                    .map(|key| map_layout_key(key, ctx.percentage_key))
-                {
+                if let Some(key) = ctx.layout.key_at_position(position.x, position.y) {
                     debug!(
                         "Key press: {:?} at x={:.2}, y={:.2}",
                         key, position.x, position.y
                     );
 
-                    if key == ctx.percentage_key {
-                        ctx.virtual_kb.press_key_with_shift(key)?;
-                    } else {
-                        ctx.virtual_kb.press_key(key)?;
-                    }
+                    ctx.virtual_kb.press_key(key)?;
                     ctx.state.pressed_key = Some(key);
                 }
             }
@@ -296,11 +286,7 @@ fn disable_numpad(ctx: &mut DriverContext) -> Result<()> {
 fn release_pressed_key(ctx: &mut DriverContext) -> Result<()> {
     if let Some(key) = ctx.state.pressed_key.take() {
         debug!("Releasing key: {:?}", key);
-        if key == ctx.percentage_key {
-            ctx.virtual_kb.release_key_with_shift(key)?;
-        } else {
-            ctx.virtual_kb.release_key(key)?;
-        }
+        ctx.virtual_kb.release_key(key)?;
     }
     Ok(())
 }
@@ -310,14 +296,6 @@ fn cleanup(ctx: &mut DriverContext) {
         warn!("Failed to fully clean up driver state: {}", e);
     }
     ctx.state.enabled = false;
-}
-
-fn map_layout_key(key: KeyCode, percentage_key: KeyCode) -> KeyCode {
-    if key == KeyCode::KEY_KP5 || key == KeyCode::KEY_5 {
-        percentage_key
-    } else {
-        key
-    }
 }
 
 fn read_numlock_state(keyboard_path: Option<&str>) -> Option<bool> {
@@ -368,27 +346,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn maps_keypad_five_to_percentage_key() {
-        assert_eq!(
-            map_layout_key(KeyCode::KEY_KP5, KeyCode::KEY_6),
-            KeyCode::KEY_6
-        );
-        assert_eq!(
-            map_layout_key(KeyCode::KEY_5, KeyCode::KEY_6),
-            KeyCode::KEY_6
-        );
-        assert_eq!(
-            map_layout_key(KeyCode::KEY_KP4, KeyCode::KEY_6),
-            KeyCode::KEY_KP4
-        );
-    }
-
-    #[test]
     fn g634jy_corner_detection_respects_layout_toggle_dead_zone() {
         let layout = layouts::G634jyLayout::new();
 
         assert_eq!(
-            corner_at_position(&layout, TouchPosition { x: 0.82, y: 0.20 }),
+            corner_at_position(&layout, TouchPosition { x: 0.32, y: 0.40 }),
             Corner::None
         );
         assert_eq!(

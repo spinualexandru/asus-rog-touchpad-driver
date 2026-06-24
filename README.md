@@ -139,12 +139,11 @@ sudo RUST_LOG=debug asus-rog-touchpad-numpad run  # Run manually with debug logg
 ### Command Line Arguments
 
 ```
-asus-rog-touchpad-numpad [MODEL] [PERCENTAGE_KEY]
-asus-rog-touchpad-numpad run [MODEL] [PERCENTAGE_KEY]
+asus-rog-touchpad-numpad [MODEL]
+asus-rog-touchpad-numpad run [MODEL]
 
 Arguments:
   MODEL           Layout model to use (default: g634jy)
-  PERCENTAGE_KEY  Key code for % symbol (default: 6 for Qwerty, 40 for Azerty)
 ```
 
 ### Management Subcommands

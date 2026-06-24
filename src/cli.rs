@@ -86,17 +86,12 @@ pub struct RunArgs {
     /// Layout model to use.
     #[arg(default_value = "g634jy")]
     pub model: String,
-
-    /// Key code used for the percentage symbol.
-    #[arg(default_value_t = 6)]
-    pub percentage_key: u16,
 }
 
 impl Default for RunArgs {
     fn default() -> Self {
         Self {
             model: "g634jy".to_string(),
-            percentage_key: 6,
         }
     }
 }
@@ -198,7 +193,7 @@ fn run_debug(args: RunArgs) -> Result<()> {
         "RUST_LOG",
         env::var("RUST_LOG").unwrap_or_else(|_| "debug".to_string()),
     );
-    command.arg(args.model).arg(args.percentage_key.to_string());
+    command.arg(args.model);
     run_command(&mut command)
 }
 
@@ -485,7 +480,7 @@ mod tests {
 
     #[test]
     fn run_subcommand_accepts_driver_arguments() {
-        let cli = Cli::parse_from([BINARY_NAME, "run", "g634jyr", "40"]);
+        let cli = Cli::parse_from([BINARY_NAME, "run", "g634jyr"]);
 
         assert!(matches!(cli.command, Some(CliCommand::Run(_))));
     }
@@ -495,14 +490,12 @@ mod tests {
         let args = args_with_legacy_run_subcommand(vec![
             OsString::from(BINARY_NAME),
             OsString::from("g634jyr"),
-            OsString::from("40"),
         ]);
         let cli = Cli::parse_from(args);
 
         match cli.command {
             Some(CliCommand::Run(args)) => {
                 assert_eq!(args.model, "g634jyr");
-                assert_eq!(args.percentage_key, 40);
             }
             other => panic!("expected run command, got {other:?}"),
         }
