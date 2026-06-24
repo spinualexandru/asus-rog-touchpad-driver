@@ -1,5 +1,4 @@
 use crate::i2c::Brightness;
-use crate::layouts::NumpadLayout;
 use evdev::KeyCode;
 
 /// Touch position in normalized coordinates (0.0 - 1.0)
@@ -60,33 +59,6 @@ impl NumpadState {
         self.current_position.y = normalize_axis(value, min_y, max_y);
     }
 
-    /// Calculate grid position from current touch coordinates
-    pub fn grid_position(&self, layout: &dyn NumpadLayout) -> Option<(u32, u32)> {
-        let cols = layout.cols() as f64;
-        let rows = layout.rows() as f64;
-        if cols == 0.0 || rows == 0.0 {
-            return None;
-        }
-
-        let top_offset = layout.top_offset().clamp(0.0, 0.95);
-
-        // Ignore the top control area before scaling the remaining area into rows.
-        if self.current_position.y < top_offset {
-            return None;
-        }
-
-        let col = scaled_index(self.current_position.x, cols);
-        let row_f = rows * ((self.current_position.y - top_offset) / (1.0 - top_offset));
-        let row = scaled_index(row_f / rows, rows);
-
-        // Bounds check
-        if col >= 0 && col < layout.cols() as i32 && row >= 0 && row < layout.rows() as i32 {
-            Some((row as u32, col as u32))
-        } else {
-            None
-        }
-    }
-
     /// Cycle to next brightness level
     pub fn cycle_brightness(&mut self) {
         self.brightness = self.brightness.next();
@@ -101,10 +73,6 @@ fn normalize_axis(value: i32, min: i32, max: i32) -> f64 {
     ((value - min) as f64 / (max - min) as f64).clamp(0.0, 1.0)
 }
 
-fn scaled_index(value: f64, count: f64) -> i32 {
-    (count * value.clamp(0.0, 1.0)).floor().min(count - 1.0) as i32
-}
-
 impl Default for NumpadState {
     fn default() -> Self {
         Self::new()
@@ -115,58 +83,12 @@ impl Default for NumpadState {
 mod tests {
     use super::*;
 
-    struct TestLayout;
-
-    impl NumpadLayout for TestLayout {
-        fn name(&self) -> &'static str {
-            "test"
-        }
-
-        fn cols(&self) -> u32 {
-            5
-        }
-
-        fn rows(&self) -> u32 {
-            4
-        }
-
-        fn top_offset(&self) -> f64 {
-            0.10
-        }
-
-        fn key_at(&self, _row: u32, _col: u32) -> Option<KeyCode> {
-            None
-        }
-
-        fn all_keys(&self) -> Vec<KeyCode> {
-            Vec::new()
-        }
-    }
-
     #[test]
     fn normalizes_and_clamps_axis_values() {
         assert_eq!(normalize_axis(50, 0, 100), 0.5);
         assert_eq!(normalize_axis(-10, 0, 100), 0.0);
         assert_eq!(normalize_axis(110, 0, 100), 1.0);
         assert_eq!(normalize_axis(1, 1, 1), 0.0);
-    }
-
-    #[test]
-    fn top_offset_skips_fraction_of_touchpad_height() {
-        let layout = TestLayout;
-        let mut state = NumpadState::new();
-
-        state.current_position = TouchPosition { x: 0.5, y: 0.09 };
-        assert_eq!(state.grid_position(&layout), None);
-
-        state.current_position = TouchPosition { x: 0.5, y: 0.10 };
-        assert_eq!(state.grid_position(&layout), Some((0, 2)));
-
-        state.current_position = TouchPosition { x: 0.99, y: 0.99 };
-        assert_eq!(state.grid_position(&layout), Some((3, 4)));
-
-        state.current_position = TouchPosition { x: 1.0, y: 1.0 };
-        assert_eq!(state.grid_position(&layout), Some((3, 4)));
     }
 
     #[test]
