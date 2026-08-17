@@ -32,6 +32,25 @@ struct PendingCorner {
     fired: bool,
 }
 
+impl PendingCorner {
+    /// Whether this hold has earned its action, given the clock and where the
+    /// finger is *now*.
+    ///
+    /// All three conditions are load-bearing, and the position check in particular
+    /// is not redundant with `poll_pending_corner`'s. A report that carries
+    /// `BTN_TOOL_FINGER=0` is dispatched to `handle_finger_event`, never to
+    /// `poll_pending_corner` — so when the finger's last movement out of the zone
+    /// and its lift arrive in the *same* report, the release path is the only place
+    /// left that can notice the slide-out. Without it a hold that ended somewhere
+    /// else entirely still fires, enabling the numpad or launching the calculator
+    /// after the user has visibly left the corner.
+    ///
+    /// Pure so the truth table is testable without uinput or `/dev/input`.
+    fn should_fire(&self, now: Instant, corner_now: Corner) -> bool {
+        !self.fired && now.duration_since(self.since) >= CORNER_HOLD && corner_now == self.corner
+    }
+}
+
 /// Runtime context holding all mutable driver state
 struct DriverContext<'a> {
     state: NumpadState,
@@ -459,8 +478,11 @@ fn process_event(event: &evdev::InputEvent, ctx: &mut DriverContext) -> Result<(
 ///
 /// Called on every sync report while a finger is down, so the action lands mid-hold
 /// the way the hardware numpad does. A finger held perfectly still emits no further
-/// reports, so `handle_finger_event` re-checks the threshold on release as a
-/// fallback — between them, both a jittery and a motionless hold work.
+/// reports, so `handle_finger_event` re-checks on release as a fallback — between
+/// them, both a jittery and a motionless hold work.
+///
+/// Only this path *cancels*, because only it can tell "still in the zone, not yet
+/// long enough" from "gone". The release path re-tests the position instead.
 fn poll_pending_corner(ctx: &mut DriverContext) -> Result<()> {
     let Some(pending) = ctx.pending_corner else {
         return Ok(());
@@ -469,7 +491,8 @@ fn poll_pending_corner(ctx: &mut DriverContext) -> Result<()> {
         return Ok(());
     }
 
-    if corner_at_position(ctx.layout, ctx.state.current_position) != pending.corner {
+    let corner_now = corner_at_position(ctx.layout, ctx.state.current_position);
+    if corner_now != pending.corner {
         debug!(
             "Corner hold cancelled: finger left the {:?} zone",
             pending.corner
@@ -478,7 +501,7 @@ fn poll_pending_corner(ctx: &mut DriverContext) -> Result<()> {
         return Ok(());
     }
 
-    if pending.since.elapsed() >= CORNER_HOLD {
+    if pending.should_fire(Instant::now(), corner_now) {
         if let Some(pending) = ctx.pending_corner.as_mut() {
             pending.fired = true;
         }
@@ -497,10 +520,19 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
         );
 
         // Fallback for a hold that emitted no further reports: a finger resting
-        // perfectly still never reaches poll_pending_corner.
+        // perfectly still never reaches poll_pending_corner. The position is
+        // re-tested here rather than trusting that path to have cancelled already —
+        // a report carrying both the last movement and the lift comes straight
+        // here, so this is the only check that sees the slide-out at all.
         if let Some(pending) = ctx.pending_corner.take() {
-            if !pending.fired && pending.since.elapsed() >= CORNER_HOLD {
+            let corner_now = corner_at_position(ctx.layout, ctx.state.current_position);
+            if pending.should_fire(Instant::now(), corner_now) {
                 activate_corner(pending.corner, ctx)?;
+            } else if !pending.fired && corner_now != pending.corner {
+                debug!(
+                    "Corner hold dropped on release: finger left the {:?} zone",
+                    pending.corner
+                );
             }
         }
 
@@ -878,6 +910,61 @@ mod tests {
             layout.key_at_position(position.x, position.y),
             Some(KeyCode::KEY_KP7)
         );
+    }
+
+    fn pending(corner: Corner, fired: bool) -> (PendingCorner, Instant) {
+        // Built forwards from `since` rather than backwards from `now`, so the
+        // arithmetic cannot underflow the platform clock.
+        let since = Instant::now();
+        (
+            PendingCorner {
+                corner,
+                since,
+                fired,
+            },
+            since + CORNER_HOLD,
+        )
+    }
+
+    /// The regression: when the finger's last movement out of the zone and its
+    /// `BTN_TOOL_FINGER=0` land in the same report, `process_event` dispatches to
+    /// `handle_finger_event` and `poll_pending_corner` never runs — so the release
+    /// path is the only thing standing between a slide-out and an unwanted toggle.
+    #[test]
+    fn a_hold_that_ends_outside_the_zone_does_not_fire() {
+        let (held, after_hold) = pending(Corner::TopLeft, false);
+
+        assert!(
+            !held.should_fire(after_hold, Corner::None),
+            "a corner hold fired after the finger had already left the zone"
+        );
+        // Slid from one corner straight into the other: still not the corner that
+        // was armed, so still nothing.
+        assert!(!held.should_fire(after_hold, Corner::TopRight));
+    }
+
+    #[test]
+    fn a_motionless_hold_still_fires_on_release() {
+        let (held, after_hold) = pending(Corner::TopLeft, false);
+        assert!(held.should_fire(after_hold, Corner::TopLeft));
+    }
+
+    #[test]
+    fn a_hold_shorter_than_the_threshold_never_fires() {
+        let (held, _) = pending(Corner::TopRight, false);
+        assert!(!held.should_fire(held.since, Corner::TopRight));
+        assert!(!held.should_fire(
+            held.since + CORNER_HOLD - Duration::from_millis(1),
+            Corner::TopRight
+        ));
+    }
+
+    /// `poll_pending_corner` fires mid-hold and marks the pending corner; the
+    /// release that follows must not run the action a second time.
+    #[test]
+    fn an_already_fired_hold_does_not_repeat_on_release() {
+        let (held, after_hold) = pending(Corner::TopRight, true);
+        assert!(!held.should_fire(after_hold, Corner::TopRight));
     }
 
     fn decision(click: bool, owed: bool) -> NumlockDecision {
