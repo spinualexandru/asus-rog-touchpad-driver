@@ -174,10 +174,6 @@ fn process_event(event: &evdev::InputEvent, ctx: &mut DriverContext) -> Result<(
 }
 
 fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
-    println!(
-        "X={:.2}, Y={:.2}",
-        ctx.state.current_position.x, ctx.state.current_position.y
-    );
     if value == 0 {
         // Finger up - release any pressed key
         debug!(
@@ -186,12 +182,17 @@ fn handle_finger_event(value: i32, ctx: &mut DriverContext) -> Result<()> {
         );
 
         release_pressed_key(ctx)?;
-    } else if value == 1 && ctx.state.pressed_key.is_none() {
+    } else if value == 1 {
         // Finger down - handle corner detection or key press
         debug!(
             "Finger down at x={:.2}, y={:.2}",
             ctx.state.current_position.x, ctx.state.current_position.y
         );
+
+        // A key is still held from an earlier touch; wait for its release.
+        if ctx.state.pressed_key.is_some() {
+            return Ok(());
+        }
 
         let position = ctx.state.current_position;
         let corner = corner_at_position(ctx.layout, position);
