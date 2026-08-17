@@ -294,7 +294,8 @@ fn start_service() -> Result<()> {
     info("Starting service...");
     systemctl(&["start", SERVICE_NAME])?;
 
-    std::thread::sleep(std::time::Duration::from_secs(1));
+    // No sleep needed before the check: the unit is Type=notify, so `systemctl
+    // start` has already blocked until the driver sent READY=1 (or gave up).
     if systemctl_quiet(&["is-active", "--quiet", SERVICE_NAME]) {
         info("Service started successfully");
     } else {
@@ -340,9 +341,10 @@ fn install_all() -> Result<()> {
     println!("========================================");
     println!();
     println!("Usage:");
-    println!("  - Tap top-right corner of touchpad to toggle numpad");
+    println!("  - Hold top-right corner of touchpad (0.4s) to enable numpad");
+    println!("  - Tap top-right corner to disable it again");
     println!("  - Tap top-left corner to cycle brightness (numpad on)");
-    println!("  - Tap top-left corner to open calculator (numpad off)");
+    println!("  - Hold top-left corner to open calculator (numpad off)");
     println!();
     println!("Commands:");
     println!("  {BINARY_NAME} status    - Check service status");

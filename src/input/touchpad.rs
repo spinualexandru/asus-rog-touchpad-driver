@@ -1,6 +1,7 @@
 use evdev::{AbsoluteAxisCode, Device};
 use log::debug;
 use std::io;
+use std::os::fd::{AsFd, BorrowedFd};
 use std::path::Path;
 
 /// Touchpad dimensions from absinfo
@@ -80,6 +81,23 @@ impl TouchpadReader {
         self.bounds
     }
 
+    /// The device fd, for waiting on it alongside something else.
+    ///
+    /// Borrowed rather than owned on purpose: the event loop only ever hands it to
+    /// `poll()`, and closing it out from under the reader would drop the grab.
+    pub fn as_fd(&self) -> BorrowedFd<'_> {
+        self.device.as_fd()
+    }
+
+    /// Puts the device fd in (non-)blocking mode.
+    ///
+    /// `Device::open` leaves it blocking. A loop that waits in `poll()` must set
+    /// this, or a wakeup that turns out to carry no events parks the process in
+    /// `read()` anyway — the very stall the poll was there to avoid.
+    pub fn set_nonblocking(&self, nonblocking: bool) -> io::Result<()> {
+        self.device.set_nonblocking(nonblocking)
+    }
+
     /// Grab exclusive access to the touchpad
     pub fn grab(&mut self) -> io::Result<()> {
         if !self.grabbed {
@@ -104,11 +122,13 @@ impl TouchpadReader {
         Ok(())
     }
 
-    /// Fetch events and collect them into a Vec to avoid borrow issues
+    /// Fetch events and collect them into a Vec to avoid borrow issues.
+    ///
+    /// The error is returned unwrapped so callers keep its `ErrorKind`: the event
+    /// loop distinguishes `Interrupted` (a signal landed, check for shutdown) and
+    /// `WouldBlock` (non-blocking fd with nothing queued) from a genuinely broken
+    /// device.
     pub fn fetch_events(&mut self) -> io::Result<Vec<evdev::InputEvent>> {
-        self.device
-            .fetch_events()
-            .map(|iter| iter.collect())
-            .map_err(|e| io::Error::other(format!("Failed to fetch events: {}", e)))
+        self.device.fetch_events().map(|iter| iter.collect())
     }
 }

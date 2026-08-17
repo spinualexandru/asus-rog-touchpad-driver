@@ -4,10 +4,10 @@ A Linux driver written in Rust that enables the illuminated numpad feature on AS
 
 ## Features
 
-- **Numpad Toggle**: Tap the top-right corner of the touchpad to enable/disable the numpad overlay
+- **Numpad Toggle**: Hold the top-right corner of the touchpad to enable the numpad overlay, tap it to disable
 - **LED Backlight Control**: Native I2C communication to control the numpad LED backlight
 - **Brightness Cycling**: Tap the top-left corner (when numpad is active) to cycle through brightness levels
-- **Calculator Shortcut**: Tap the top-left corner (when numpad is off) to launch the calculator
+- **Calculator Shortcut**: Hold the top-left corner (when numpad is off) to launch the calculator
 - **Virtual Keyboard**: Injects numpad key events via uinput
 - **Auto-restart**: Systemd service with automatic restart on failure
 - **Low Resource Usage**: Efficient Rust implementation with minimal CPU overhead
@@ -104,9 +104,15 @@ sudo systemctl enable --now asus-rog-touchpad
 
 | Gesture | Numpad Off | Numpad On |
 |---------|------------|-----------|
-| Tap top-right corner | Enable numpad | Disable numpad |
-| Tap top-left corner | Launch calculator | Cycle brightness |
+| Top-right corner | **Hold 0.4s** to enable numpad | Tap to disable numpad |
+| Top-left corner | **Hold 0.4s** to launch calculator | Tap to cycle brightness |
 | Tap numpad area | Normal touchpad | Enter numpad key |
+
+While the numpad is off the touchpad is not grabbed, so your desktop sees those
+touches too — corner actions need a deliberate hold there so an ordinary tap or a
+gesture that happens to start in a corner doesn't hijack the pad. Once the numpad
+is on the pad is grabbed and corners respond instantly. Sliding out of the corner
+before the hold completes cancels it.
 
 ### Numpad Layout (G634JY/G634JYR)
 

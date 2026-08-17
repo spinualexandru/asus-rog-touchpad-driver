@@ -9,26 +9,15 @@ pub struct TouchPosition {
 }
 
 /// Corner detection zones
+///
+/// Both zones are resolved by the active layout (`is_toggle_position` /
+/// `is_calc_position`), not here — the geometry has to agree with the layout's
+/// key bands, and only the layout knows those.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Corner {
     TopRight, // Numpad toggle
     TopLeft,  // Calculator/brightness
     None,
-}
-
-impl TouchPosition {
-    pub fn corner(&self) -> Corner {
-        // Top-right: x > 80%, y < 25%
-        if self.x > 0.80 && self.y < 0.25 {
-            Corner::TopRight
-        }
-        // Top-left: x < 6%, y < 7%
-        else if self.x < 0.06 && self.y < 0.07 {
-            Corner::TopLeft
-        } else {
-            Corner::None
-        }
-    }
 }
 
 /// State machine for numpad operation
@@ -65,7 +54,8 @@ impl NumpadState {
     }
 }
 
-fn normalize_axis(value: i32, min: i32, max: i32) -> f64 {
+/// Maps a raw device value onto the 0.0–1.0 fraction everything downstream works in.
+pub fn normalize_axis(value: i32, min: i32, max: i32) -> f64 {
     if max <= min {
         return 0.0;
     }
@@ -92,12 +82,13 @@ mod tests {
     }
 
     #[test]
-    fn corner_detection_uses_expected_zones() {
-        assert_eq!(
-            TouchPosition { x: 0.90, y: 0.10 }.corner(),
-            Corner::TopRight
-        );
-        assert_eq!(TouchPosition { x: 0.05, y: 0.05 }.corner(), Corner::TopLeft);
-        assert_eq!(TouchPosition { x: 0.50, y: 0.50 }.corner(), Corner::None);
+    fn cycles_brightness_without_ever_landing_on_off() {
+        // Off is reachable only via turn_off() on disable; cycling must not dim
+        // the pad to invisible while the numpad is still enabled.
+        let mut state = NumpadState::new();
+        for _ in 0..8 {
+            state.cycle_brightness();
+            assert_ne!(state.brightness, Brightness::Off);
+        }
     }
 }
